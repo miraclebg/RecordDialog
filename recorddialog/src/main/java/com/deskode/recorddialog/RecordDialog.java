@@ -4,8 +4,6 @@ import android.animation.Animator;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.DialogFragment;
-import android.content.DialogInterface;
 import android.media.AudioFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -18,10 +16,12 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.fragment.app.DialogFragment;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -44,10 +45,11 @@ public class RecordDialog extends DialogFragment {
     private String titleStr;
     private String messageStr;
     private String positiveButtonText;
-    private FloatingActionButton _recordButton;
+    private FloatingActionButton recordButton;
     private String buttonState = "INIT";
     private String audioSavePathInDevice;
     private TextView timerView;
+    private Button sendButton;
     private Timer timer;
     private int recorderSecondsElapsed;
     private int playerSecondsElapsed;
@@ -55,7 +57,7 @@ public class RecordDialog extends DialogFragment {
     private ClickListener clickListener;
     private Recorder recorder;
     private MediaPlayer mediaPlayer;
-    private MediaPlayer mPlayer;
+//    private MediaPlayer mPlayer;
 
     public RecordDialog() {
 
@@ -76,7 +78,7 @@ public class RecordDialog extends DialogFragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         //noinspection ConstantConditions
         getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams
@@ -85,6 +87,7 @@ public class RecordDialog extends DialogFragment {
         return super.onCreateView(inflater, container, savedInstanceState);
     }
 
+    @NonNull
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -92,29 +95,52 @@ public class RecordDialog extends DialogFragment {
         // Getting the layout inflater to inflate the view in an alert dialog.
         LayoutInflater inflater = LayoutInflater.from(getActivity());
         @SuppressLint("InflateParams") View rootView = inflater.inflate(R.layout.record_dialog, null);
-        String strMessage = messageStr == null ? "Presiona para grabar" : messageStr;
+
+        //titleStr = getContext().getString(R.string.record_audio_title);
+
         timerView = rootView.findViewById(R.id._txtTimer);
-        timerView.setText(strMessage);
-        _recordButton = rootView.findViewById(R.id.btnRecord);
-        _recordButton.setOnClickListener(new View.OnClickListener() {
+        timerView.setText(messageStr);
+
+        sendButton = rootView.findViewById(R.id.btnSend);
+        sendButton.setVisibility(View.GONE);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (buttonState.equals("RECORD")) {
+                    try {
+                        recorder.stopRecording();
+                        stopTimer();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                clickListener.OnClickListener(audioSavePathInDevice);
+                dismiss();
+            }
+        });
+
+        recordButton = rootView.findViewById(R.id.btnRecord);
+        recordButton.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("SetTextI18n")
             @Override
             public void onClick(View v) {
                 scaleAnimation();
                 switch (buttonState) {
                     case "INIT":
-                        _recordButton.setImageResource(R.drawable.ic_stop);
+                        recordButton.setImageResource(R.drawable.ic_stop);
                         buttonState = "RECORD";
                         try {
-                            mPlayer = MediaPlayer.create(getContext(), R.raw.hangouts_message);
-                            mPlayer.start();
-                            mPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                                @Override
-                                public void onCompletion(MediaPlayer mp) {
-                                    recorder.startRecording();
-                                    startTimer();
-                                }
-                            });
+//                            mPlayer = MediaPlayer.create(getContext(), R.raw.hangouts_message);
+//                            mPlayer.start();
+//                            mPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+//                                @Override
+//                                public void onCompletion(MediaPlayer mp) {
+//                                    recorder.startRecording();
+//                                    startTimer();
+//                                }
+//                            });
+                            recorder.startRecording();
+                            startTimer();
                         } catch (IllegalStateException e) {
                             e.printStackTrace();
                         }
@@ -122,12 +148,13 @@ public class RecordDialog extends DialogFragment {
                     case "RECORD":
                         try {
                             recorder.stopRecording();
-                            mPlayer = MediaPlayer.create(getContext(), R.raw.pop);
-                            mPlayer.start();
+//                            mPlayer = MediaPlayer.create(getContext(), R.raw.pop);
+//                            mPlayer.start();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        _recordButton.setImageResource(R.drawable.ic_play);
+                        sendButton.setVisibility(View.VISIBLE);
+                        recordButton.setImageResource(R.drawable.ic_play);
                         buttonState = "STOP";
                         timerView.setText("00:00:00");
                         recorderSecondsElapsed = 0;
@@ -148,24 +175,7 @@ public class RecordDialog extends DialogFragment {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(getActivity());
         alertDialog.setView(rootView);
 
-        String strPositiveButton = positiveButtonText == null ? "CLOSE" : positiveButtonText;
-        alertDialog.setPositiveButton(strPositiveButton, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (buttonState.equals("RECORD")) {
-                    try {
-                        recorder.stopRecording();
-                        stopTimer();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                clickListener.OnClickListener(audioSavePathInDevice);
-            }
-        });
-
-        String strTitle = titleStr == null ? "Grabar audio" : titleStr;
-        alertDialog.setTitle(strTitle);
+        alertDialog.setTitle(titleStr);
 
         recorderSecondsElapsed = 0;
         playerSecondsElapsed = 0;
@@ -178,14 +188,14 @@ public class RecordDialog extends DialogFragment {
         return dialog;
     }
 
-    // Change End
-
-    public void setTitle(String strTitle) {
-        titleStr = strTitle;
-    }
-
     public void setMessage(String strMessage) {
-        messageStr = strMessage;
+        if (!Objects.equals(messageStr, strMessage)) {
+            messageStr = strMessage;
+
+            if (timerView != null) {
+                timerView.setText(messageStr);
+            }
+        }
     }
 
     public void setPositiveButton(String strPositiveButtonText, ClickListener onClickListener) {
@@ -213,8 +223,12 @@ public class RecordDialog extends DialogFragment {
 
     @NonNull
     private File file() {
+        //noinspection ConstantConditions
+        File dir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+
         @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), timeStamp + ".wav");
+
+        File file = new File(dir, timeStamp + ".wav");
         audioSavePathInDevice = file.getPath();
         return file;
     }
@@ -237,7 +251,7 @@ public class RecordDialog extends DialogFragment {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        _recordButton.setImageResource(R.drawable.ic_pause);
+        recordButton.setImageResource(R.drawable.ic_pause);
         buttonState = "PLAY";
         playerSecondsElapsed = 0;
         startTimer();
@@ -245,13 +259,13 @@ public class RecordDialog extends DialogFragment {
     }
 
     private void resumeMediaPlayer() {
-        _recordButton.setImageResource(R.drawable.ic_pause);
+        recordButton.setImageResource(R.drawable.ic_pause);
         buttonState = "PLAY";
         mediaPlayer.start();
     }
 
     private void pauseMediaPlayer() {
-        _recordButton.setImageResource(R.drawable.ic_play);
+        recordButton.setImageResource(R.drawable.ic_play);
         buttonState = "PAUSE";
         mediaPlayer.pause();
     }
@@ -263,7 +277,7 @@ public class RecordDialog extends DialogFragment {
             mediaPlayer.reset();
             mediaPlayer.release();
             mediaPlayer = null;
-            _recordButton.setImageResource(R.drawable.ic_play);
+            recordButton.setImageResource(R.drawable.ic_play);
             buttonState = "STOP";
             timerView.setText("00:00:00");
             stopTimer();
@@ -312,7 +326,7 @@ public class RecordDialog extends DialogFragment {
     private void scaleAnimation() {
         final Interpolator interpolador = AnimationUtils.loadInterpolator(getContext(),
                 android.R.interpolator.fast_out_slow_in);
-        _recordButton.animate()
+        recordButton.animate()
                 .scaleX(1.1f)
                 .scaleY(1.1f)
                 .setInterpolator(interpolador)
@@ -324,7 +338,7 @@ public class RecordDialog extends DialogFragment {
 
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        _recordButton.animate().scaleX(1f).scaleY(1f).start();
+                        recordButton.animate().scaleX(1f).scaleY(1f).start();
                     }
 
                     @Override
