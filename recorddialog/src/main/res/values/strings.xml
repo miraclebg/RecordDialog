@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">RecordDialog</string>
     <string name="record">Record</string>
-    <string name="record_audio_title">New Audio Recording</string>
     <string name="send_button">Send</string>
 </resources>
