@@ -103,33 +103,27 @@ public class RecordDialog extends DialogFragment {
 
         sendButton = rootView.findViewById(R.id.btnSend);
         sendButton.setVisibility(View.GONE);
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (buttonState.equals("RECORD")) {
-                    try {
-                        recorder.stopRecording();
-                        stopTimer();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        sendButton.setOnClickListener(v -> {
+            if (buttonState.equals("RECORD")) {
+                try {
+                    recorder.stopRecording();
+                    stopTimer();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-                clickListener.OnClickListener(audioSavePathInDevice);
-                dismiss();
             }
+            clickListener.OnClickListener(audioSavePathInDevice);
+            dismiss();
         });
 
         recordButton = rootView.findViewById(R.id.btnRecord);
-        recordButton.setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void onClick(View v) {
-                scaleAnimation();
-                switch (buttonState) {
-                    case "INIT":
-                        recordButton.setImageResource(R.drawable.ic_stop);
-                        buttonState = "RECORD";
-                        try {
+        recordButton.setOnClickListener(v -> {
+            scaleAnimation();
+            switch (buttonState) {
+                case "INIT":
+                    recordButton.setImageResource(R.drawable.ic_stop);
+                    buttonState = "RECORD";
+                    try {
 //                            mPlayer = MediaPlayer.create(getContext(), R.raw.hangouts_message);
 //                            mPlayer.start();
 //                            mPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -139,36 +133,35 @@ public class RecordDialog extends DialogFragment {
 //                                    startTimer();
 //                                }
 //                            });
-                            recorder.startRecording();
-                            startTimer();
-                        } catch (IllegalStateException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case "RECORD":
-                        try {
-                            recorder.stopRecording();
+                        recorder.startRecording();
+                        startTimer();
+                    } catch (IllegalStateException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case "RECORD":
+                    try {
+                        recorder.stopRecording();
 //                            mPlayer = MediaPlayer.create(getContext(), R.raw.pop);
 //                            mPlayer.start();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        sendButton.setVisibility(View.VISIBLE);
-                        recordButton.setImageResource(R.drawable.ic_play);
-                        buttonState = "STOP";
-                        timerView.setText("00:00:00");
-                        recorderSecondsElapsed = 0;
-                        break;
-                    case "STOP":
-                        startMediaPlayer();
-                        break;
-                    case "PLAY":
-                        pauseMediaPlayer();
-                        break;
-                    case "PAUSE":
-                        resumeMediaPlayer();
-                        break;
-                }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    sendButton.setVisibility(View.VISIBLE);
+                    recordButton.setImageResource(R.drawable.ic_play);
+                    buttonState = "STOP";
+                    timerView.setText("00:00:00");
+                    recorderSecondsElapsed = 0;
+                    break;
+                case "STOP":
+                    startMediaPlayer();
+                    break;
+                case "PLAY":
+                    pauseMediaPlayer();
+                    break;
+                case "PAUSE":
+                    resumeMediaPlayer();
+                    break;
             }
         });
 
@@ -205,10 +198,7 @@ public class RecordDialog extends DialogFragment {
 
     private void setupRecorder() {
         recorder = OmRecorder.wav(
-                new PullTransport.Default(mic(), new PullTransport.OnAudioChunkPulledListener() {
-                    @Override
-                    public void onAudioChunkPulled(AudioChunk audioChunk) {
-                    }
+                new PullTransport.Default(mic(), audioChunk -> {
                 }), file());
     }
 
@@ -242,12 +232,7 @@ public class RecordDialog extends DialogFragment {
         try {
             mediaPlayer.setDataSource(audioSavePathInDevice);
             mediaPlayer.prepare();
-            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    stopMediaPlayer();
-                }
-            });
+            mediaPlayer.setOnCompletionListener(mp -> stopMediaPlayer());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -308,16 +293,13 @@ public class RecordDialog extends DialogFragment {
         if (getActivity() == null)
             return;
 
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (buttonState.equals("RECORD")) {
-                    recorderSecondsElapsed++;
-                    timerView.setText(Util.formatSeconds(recorderSecondsElapsed));
-                } else if (buttonState.equals("PLAY")) {
-                    playerSecondsElapsed++;
-                    timerView.setText(Util.formatSeconds(playerSecondsElapsed));
-                }
+        getActivity().runOnUiThread(() -> {
+            if (buttonState.equals("RECORD")) {
+                recorderSecondsElapsed++;
+                timerView.setText(Util.formatSeconds(recorderSecondsElapsed));
+            } else if (buttonState.equals("PLAY")) {
+                playerSecondsElapsed++;
+                timerView.setText(Util.formatSeconds(playerSecondsElapsed));
             }
         });
     }
